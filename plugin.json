@@ -1,0 +1,10 @@
+{
+  "name": "Tormak Decky Template",
+  "author": "Tormak",
+  "flags": [],
+  "publish": {
+    "tags": ["convenience"],
+    "description": "A template plugin based on my preferred designs.",
+    "image": "https://raw.githubusercontent.com/Tormak9970/Tormak-Decky-Template/main/assets/thumbnail.png"
+  }
+}
