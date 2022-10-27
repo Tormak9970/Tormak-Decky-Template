@@ -1,44 +1,27 @@
 import { createContext, FC, useContext, useEffect, useState } from "react";
-import { Shortcut } from "../lib/data-structures/Shortcut"
 
-type ShortcutsDictionary = {
-    [key:string]: Shortcut
+
+interface PublicPluginState {
+    data:Object
 }
 
-interface PublicShortcutsState {
-    shortcuts: ShortcutsDictionary;
-    shortcutsList: Shortcut[];
-    isRunning: boolean;
+interface PublicPluginContext extends PublicPluginState {
+    setData(data: Object): void;
 }
 
-interface PublicShortcutsContext extends PublicShortcutsState {
-    setShortcuts(shortcuts: ShortcutsDictionary): void;
-    setIsRunning(value: boolean): void;
-}
-
-export class ShortcutsState {
-    private shortcuts: ShortcutsDictionary = {};
-    private shortcutsList: Shortcut[] = [];
-    private isRunning: boolean = false;
+export class PluginState {
+    private data: Object = {};
 
     public eventBus = new EventTarget();
 
     getPublicState() {
         return {
-            "shortcuts": this.shortcuts,
-            "shortcutsList": this.shortcutsList,
-            "isRunning": this.isRunning
+            "data": this.data
         }
     }
 
-    setShortcuts(shortcuts: ShortcutsDictionary) {
-        this.shortcuts = shortcuts;
-        this.shortcutsList = Object.values(this.shortcuts).sort((a, b) => a.position - b.position);
-        this.forceUpdate();
-    }
-
-    setIsRunning(value: boolean) {
-        this.isRunning = value;
+    setData(data: Object) {
+        this.data = data;
         this.forceUpdate();
     }
 
@@ -47,52 +30,47 @@ export class ShortcutsState {
     }
 }
 
-const ShortcutsContext = createContext<PublicShortcutsContext>(null as any);
-export const useShortcutsState = () => useContext(ShortcutsContext);
+const PluginContext = createContext<PublicPluginContext>(null as any);
+export const usePluginState = () => useContext(PluginContext);
 
 interface ProviderProps {
-    shortcutsStateClass: ShortcutsState
+    pluginStateClass: PluginState
 }
 
-export const ShortcutsContextProvider: FC<ProviderProps> = ({
+export const PluginContextProvider: FC<ProviderProps> = ({
     children,
-    shortcutsStateClass
+    pluginStateClass
 }) => {
-    const [publicState, setPublicState] = useState<PublicShortcutsState>({
-        ...shortcutsStateClass.getPublicState()
+    const [publicState, setPublicState] = useState<PublicPluginState>({
+        ...pluginStateClass.getPublicState()
     });
 
     useEffect(() => {
         function onUpdate() {
-            setPublicState({ ...shortcutsStateClass.getPublicState() });
+            setPublicState({ ...pluginStateClass.getPublicState() });
         }
 
-        shortcutsStateClass.eventBus
+        pluginStateClass.eventBus
             .addEventListener("stateUpdate", onUpdate);
 
         return () => {
-            shortcutsStateClass.eventBus
+            pluginStateClass.eventBus
                 .removeEventListener("stateUpdate", onUpdate);
         }
     }, []);
 
-    const setShortcuts = (shortcuts: ShortcutsDictionary) => {
-        shortcutsStateClass.setShortcuts(shortcuts);
-    }
-
-    const setIsRunning = (value: boolean) => {
-        shortcutsStateClass.setIsRunning(value);
+    const setData = (data: Object) => {
+        pluginStateClass.setData(data);
     }
 
     return (
-        <ShortcutsContext.Provider
+        <PluginContext.Provider
             value={{
                 ...publicState,
-                setShortcuts,
-                setIsRunning
+                setData
             }}
         >
             {children}
-        </ShortcutsContext.Provider>
+        </PluginContext.Provider>
     )
 }

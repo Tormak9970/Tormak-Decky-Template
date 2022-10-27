@@ -10,26 +10,26 @@ import {
   SidebarNavigation,
   staticClasses,
 } from "decky-frontend-lib";
-import { VFC, Fragment } from "react";
+import { VFC, Fragment, useEffect } from "react";
 import { IoApps } from "react-icons/io5";
 import { About } from "./components/manager/About";
 
 import { PyInterop } from "./PyInterop";
-import { ShortcutsContextProvider, ShortcutsState, useShortcutsState } from "./state/PluginState";
+import { PluginContextProvider, PluginState, usePluginState } from "./state/PluginState";
 import { Manager } from "./lib/Manager";
 
 const Content: VFC<{ serverAPI: ServerAPI }> = ({}) => {
-  const {shortcuts, setShortcuts, shortcutsList, isRunning} = useShortcutsState();
+  const {data, setData} = usePluginState();
 
   async function reload() {
-    await PyInterop.getShortcuts().then((res) => {
-      setShortcuts(res.result as ShortcutsDictionary);
+    await PyInterop.getData().then((res) => {
+      setData(res.result);
     });
   }
-  
-  if (Object.values(shortcuts as ShortcutsDictionary).length === 0) {
+
+  useEffect(() => {
     reload();
-  }
+  }, []);
 
   return (
     <>
@@ -70,7 +70,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({}) => {
   );
 };
 
-const ShortcutsManagerRouter: VFC = () => {
+const PluginManagerRouter: VFC = () => {
   return (
     <SidebarNavigation
       title="Plugin Manager"
@@ -89,22 +89,22 @@ const ShortcutsManagerRouter: VFC = () => {
 export default definePlugin((serverApi: ServerAPI) => {
   PyInterop.setServer(serverApi);
 
-  const state = new ShortcutsState();
+  const state = new PluginState();
   Manager.setServer(serverApi);
   Manager.init();
 
   serverApi.routerHook.addRoute("/plugin-nav", () => (
-    <ShortcutsContextProvider shortcutsStateClass={state}>
-      <ShortcutsManagerRouter />
-    </ShortcutsContextProvider>
+    <PluginContextProvider pluginStateClass={state}>
+      <PluginManagerRouter />
+    </PluginContextProvider>
   ));
 
   return {
     title: <div className={staticClasses.Title}>Plugin Template</div>,
     content: (
-      <ShortcutsContextProvider shortcutsStateClass={state}>
+      <PluginContextProvider pluginStateClass={state}>
         <Content serverAPI={serverApi} />
-      </ShortcutsContextProvider>
+      </PluginContextProvider>
     ),
     icon: <IoApps />,
     onDismount() {

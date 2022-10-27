@@ -13,53 +13,47 @@ def log(txt):
 
 Initialized = False
 
-class Shortcut:
+class DataStructure:
     def __init__(self, dict):
-        self.name = dict['name']
-        self.cmd = dict['cmd']
         self.id = dict['id']
         self.position = dict['position']
         self.isApp = dict['isApp'] if 'isApp' in dict else True
     
     def toJSON(self):
-        return json.dumps({ "id": self.id, "name": self.name, "cmd": self.cmd, "position": self.position, "isApp": self.isApp }, sort_keys=True, indent=4)
+        return json.dumps({
+            "id": self.id,
+            "position": self.position,
+            "isApp": self.isApp
+        }, sort_keys=True, indent=4)
 
 class Plugin:
-    shortcuts = {}
-    shortcutsPath = "/home/deck/.config/bash-shortcuts/shortcuts.json"
-    shortcutsRunnerPath = "\"/home/deck/homebrew/plugins/bash-shortcuts/shortcutsRunner.sh\""
+    data = {}
+    dataPath = "/home/deck/.config/tormak-decky-template/data.json"
 
-    def serializeShortcuts(self):
+    def serializeData(self):
         res = {}
 
         for k,v in self.shortcuts.items():
-            res[k] = { "id": v.id, "name": v.name, "cmd": v.cmd, "position": v.position, "isApp": v.isApp }
+            res[k] = {
+                "id": v.id,
+                "position": v.position,
+                "isApp": v.isApp
+            }
 
         return res
 
     # Normal methods: can be called from JavaScript using call_plugin_function("signature", argument)
-    async def getShortcuts(self):
+    async def getData(self):
         self._load(self)
-        return self.serializeShortcuts(self)
-        
-    async def addShortcut(self, shortcut):
-        self._addShortcut(self, self.shortcutsPath, shortcut)
+        return self.serializeData(self)
+
+    async def setData(self, data):
+        self._setData(self, self.shortcutsPath, data)
         return self.serializeShortcuts(self)
 
-    async def setShortcuts(self, shortcuts):
-        self._setShortcuts(self, self.shortcutsPath, shortcuts)
+    async def modData(self, data):
+        self._modData(self, self.shortcutsPath, data)
         return self.serializeShortcuts(self)
-
-    async def modShortcut(self, shortcut):
-        self._modShortcut(self, self.shortcutsPath, shortcut)
-        return self.serializeShortcuts(self)
-
-    async def remShortcut(self, shortcut):
-        self._remShortcut(self, self.shortcutsPath, shortcut)
-        return self.serializeShortcuts(self)
-
-    async def runNonAppShortcut(self, shortcut):
-        return self._runNonAppShortcut(self, shortcut)
 
     # Asyncio-compatible long-running code, executed in a task when the plugin is loaded
     async def _main(self):
@@ -69,70 +63,50 @@ class Plugin:
         
         Initialized = True
 
-        log("Initializing Shorcuts Plugin")
+        log("Initializing Template Plugin")
 
-        if not os.path.exists(self.shortcutsPath):
-            if not os.path.exists(os.path.dirname(self.shortcutsPath)):
-                os.mkdir(os.path.dirname(self.shortcutsPath))
+        if not os.path.exists(self.dataPath):
+            if not os.path.exists(os.path.dirname(self.dataPath)):
+                os.mkdir(os.path.dirname(self.dataPath))
             
             data = {
-                "fcba1cb4-4601-45d8-b919-515d152c56ef": {
-                    "id": "fcba1cb4-4601-45d8-b919-515d152c56ef",
-                    "name": "Konsole",
-                    "cmd": "konsole",
-                    "position": 1,
-                    "isApp": True
-                }
+                
             }
 
-            with open(self.shortcutsPath, "w") as file:
+            with open(self.dataPath, "w") as file:
                 json.dump(data, file, indent=4)
 
         pass
 
     def _load(self):
-        log("Analyzing Shortcuts JSON")
+        log("Analyzing JSON")
             
-        if (exists(self.shortcutsPath)):
+        if (exists(self.dataPath)):
             try:
-                with open(self.shortcutsPath, "r") as file:
-                    shortcutsDict = json.load(file)
+                with open(self.dataPath, "r") as file:
+                    dataDict = json.load(file)
 
-                    for k,v in shortcutsDict.items():
-                        log(f"Adding shortcut {v['name']}")
-                        self.shortcuts[v['id']] = Shortcut(v)
-                        log(f"Added shortcut {v['name']}")
+                    for k,v in dataDict.items():
+                        log(f"Adding entry {v['name']}")
+                        self.data[v['id']] = DataStructure(v)
+                        log(f"Added entry {v['name']}")
 
             except Exception as e:
-                log(f"Exception while parsing shortcuts: {e}") # error reading json
+                log(f"Exception while parsing data: {e}") # error reading json
         else:
-            exception = Exception("Unabled to locate shortcuts.json: file does not exist")
+            exception = Exception("Unabled to locate data.json: file does not exist")
             raise exception
 
         pass
 
-    def _addShortcut(self, path, shortcut):
-        if (shortcut['id'] not in self.shortcuts):
-            self.shortcuts[shortcut['id']] = Shortcut(shortcut)
-            log(f"Adding shortcut {shortcut['name']}")
-            res = self.serializeShortcuts(self)
-            jDat = json.dumps(res, indent=4)
-
-            with open(path, "w") as outfile:
-                outfile.write(jDat)
-        else:
-            log(f"Shortcut {shortcut['name']} already exists")
-
-        pass
-
-    def _setShortcuts(self, path, shortcuts):
-        for shortcut in shortcuts:
-            if (shortcut['id'] in self.shortcuts):
-                self.shortcuts[shortcut['id']] = Shortcut(shortcut)
+    def _setData(self, path, data):
+        for entry in data:
+            if (entry['id'] in self.data):
+                self.data[data['id']] = DataStructure(data)
             else:
-                log(f"Shortcut {shortcut['name']} does not exist")
+                log(f"Shortcut {data['name']} does not exist")
             
-        res = self.serializeShortcuts(self)
+        res = self.serializeData(self)
         jDat = json.dumps(res, indent=4)
 
         with open(path, "w") as outfile:
@@ -140,33 +114,15 @@ class Plugin:
 
         pass
 
-    def _modShortcut(self, path, shortcut):
-        if (shortcut['id'] in self.shortcuts):
-            self.shortcuts[shortcut['id']] = Shortcut(shortcut)
-            res = self.serializeShortcuts(self)
+    def _modData(self, path, data):
+        if (data['id'] in self.data):
+            self.data[data['id']] = DataStructure(data)
+            res = self.serializeData(self)
             jDat = json.dumps(res, indent=4)
 
             with open(path, "w") as outfile:
                 outfile.write(jDat)
         else:
-            log(f"Shortcut {shortcut['name']} does not exist")
+            log(f"Shortcut {data['name']} does not exist")
 
         pass
-
-    def _remShortcut(self, path, shortcut):
-        if (shortcut['id'] in self.shortcuts):
-            del self.shortcuts[shortcut['id']]
-            log(f"removing shortcut {shortcut['name']}")
-            res = self.serializeShortcuts(self)
-            jDat = json.dumps(res, indent=4)
-
-            with open(path, "w") as outfile:
-                outfile.write(jDat)
-        else:
-            log(f"Shortcut {shortcut['name']} does not exist")
-
-        pass
-
-    def _runNonAppShortcut(self, shortcut):
-        res = subprocess.call([self.shortcutsRunnerPath, shortcut['cmd']], shell=True)
-        return res == 0
